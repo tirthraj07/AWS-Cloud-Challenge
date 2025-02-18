@@ -453,7 +453,7 @@ add_header X-Frame-Options DENY;
 add_header X-Content-Type-Options nosniff;
 ```
 
-![step11.2.1](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step25.png?raw=true)
+![step11.2.1](public/step25.png)
 
 #### 4. Modify the Nginx Configuration File:
 
@@ -491,7 +491,7 @@ server {
 }
 ```
 
-![step11.2.2](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step26.png?raw=true)
+![step11.2.2](public/step26.png)
 
 #### 5. Test and Restart Nginx:
 
@@ -511,7 +511,7 @@ sudo ufw allow 'Nginx Full'
 Open your web browser and navigate to `http://your_ip_address`. You should be automatically redirected to `https://your_ip_address`, and your Application should be served securely. 
 
 
-![step11.2.3](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step27.png?raw=true)
+![step11.2.3](public/step27.png)
 
  
 > Note that with a self-signed certificate, you'll receive a browser warning about the certificate not being trusted. This is normal and expected.
