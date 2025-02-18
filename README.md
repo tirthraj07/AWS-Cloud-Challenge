@@ -60,205 +60,17 @@ You can also connect to the instance using the ssh key we generated earlier (Opt
 
 ![step4.3](public/step12.png)
 
-### Step 5: Update package list and install dependencies
+### Step 5: Update package list and setup NGINX
 
-#### 1. Setup the EC2 instance
+#### 1. Update Package List
 
 ```bash
 sudo apt update
 sudo apt upgrade
 ```
 
-#### 2. Install NodeJS and npm
-Add the Node.js PPA (Personal Package Archive) to get the latest version of Node.js:
 
-```bash 
-curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-```
-
-Then install Node.js and npm:
-```
-sudo apt install nodejs -y
-```
-
----
-
-Verify Installation of Node.js and npm
-
-Check Node.js version
-```bash
-node -v
-```
-Check npm version
-```bash
-npm -v
-```
-
-If npm is not installed for some reason, you can install it separately.
-```
-sudo apt install npm -y
-```
-
----
-
-#### 3. Install Git
-You need to install git to bring your files into virtual machine.
-If you are going to `scp` (Secure copy protocol) for transferring your files, you can skip this step
-
-```bash
-sudo apt install git -y
-```
-
-### Step 6: Transfer the project files
-In this step, you need to transfer all the project files using either git or scp or any other mechanism
-
-For this example, I'll use git
-
-Navigate to the directory where you want to clone your project. For example, your home directory:
-
-```bash
-cd ~
-```
-
-Clone your repository
-
-```bash
-git clone https://github.com/your-username/your-repo-name.git
-```
-Replace your-username and your-repo-name with your GitHub username and repository name respectively.
-
-![step6.1](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step13.png?raw=true)
-
-![step6.2](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step14.png?raw=true)
-
-
-### Step 7: Install project dependencies
-
-#### 1. Navigate to your Project Directory
-```bash
-cd your-repo-name
-```
-
-#### 2. Install Project Dependencies
-Use npm to install the project dependencies defined in your package.json file:
-
-```bash
-npm install
-```
-
-![step7](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step15.png?raw=true)
-
-You cannot directly run your application due to the following reasons:
-1. We need to set up the environment variables
-2. We need the application to run in the background. If we close the terminal, the server will shut down
-3. Our application is running on port 3000. The Firewall does not accept connections to that port as we haven't enabled it in our security group settings
-
-### Step 8: Setup environment variables
-
-#### 1.  Create the Environment File
-```bash
-sudo vim /etc/app.env
-```
-
-#### 2. Add your variables
-In Vim, add your variables in the format VARIABLE=value. For example:
-```
-PORT=3000
-```
-
-> Press `i` to enter insert mode in vim
-> Paste the environment variables
-> Press Escape to exit the mode
-> Enter: `:x` to save and exit
-
-![step8](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step16.png?raw=true)
-
-#### 3. Restrict the file permissions for security.
-```bash
-sudo chmod 600 /etc/app.env
-sudo chown ubuntu:ubuntu /etc/app.env
-```
-
-### Step 9: Run the server in background
-
-We want our node.js server to run in the background, i.e.: when we close our terminal we want our server to keep running
-
-For this purpose, we need a `Daemon Service`
-A daemon is a background process or program that is designed to perform tasks without any direct user intervention
-
-We can create a daemon service using `systemd`.
-
-Nearly every Linux distro comes with systemd, which means forever, monit, PM2, etc are no longer necessary - your OS already handles these tasks.
-
-Creating a `daemon service` with `systemd` involves writing a `script` for the daemon process and creating a service file for systemd to manage it.
-
-A systemd service file is a unit configuration file that defines how systemd starts and manages a certain background service.
-
-#### 1. Create the systemd Service File
-Navigate to the systemd directory and create a new service file, `myapp.service`.
-
-```bash
-sudo vim /etc/systemd/system/myapp.service
-```
-
-#### 2. Define the service settings
-Add the following content in Vim, modifying as needed for your application.
-
-
-```bash
-[Unit]
-Description=Node.js App
-After=network.target multi-user.target
-
-[Service]
-User=ubuntu
-WorkingDirectory=/home/ubuntu/app
-ExecStart=/usr/bin/npm start
-Restart=always
-Environment=NODE_ENV=production
-EnvironmentFile=/etc/app.env
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=myapp
-
-[Install]
-WantedBy=multi-user.target
-```
-  
-
-Change the `Description` as per your app name.  
-Change the `WorkingDirectory` to `/home/ubuntu/your-repo-name`
-
-There are different ways to start a Node.js application, depending on your project setup.
-Change the `ExecStart` to `/usr/bin/project_start_command`
-For example: `npm start` or `node server.js` or `nodemon server.js`
-
-Change the `SyslogIdentifier` to project name for logging purposes
-
-
-
-![step9.1](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step17.png?raw=true)
-
-  
-#### 3. Reload systemd and start your service.
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable myapp.service
-sudo systemctl start myapp.service
-```
-
-Verify that the service is running properly.
-
-```bash
-sudo systemctl status myapp.service
-```
-
-![step9.2](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step18.png?raw=true)
-
----
-
-### Step 10: Set Up a Reverse Proxy with Nginx
+#### 2: Set Up a Reverse Proxy with Nginx
 
 A __reverse proxy__ is a server that __sits between client devices and web servers__, forwarding client requests to the appropriate server. 
 
@@ -276,39 +88,168 @@ A reverse proxy like Nginx or Apache is more efficient at handling a large numbe
 
 In this tutorial, I'll use `Nginx` for reverse proxy
   
-#### 1. Install Nginx
+#### 2.1. Install Nginx
 ```bash
 sudo apt install nginx
 ```
 
-#### 2. Start and Enable Nginx
+#### 2.2. Start and Enable Nginx
 ```bash
 sudo systemctl start nginx
 sudo systemctl enable nginx
 ```
 
-![step10.1](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step19.png?raw=true)
+![step10.1](public/step19.png)
 
 
-#### 3. Verify that Nginx is installed
+#### 2.3. Verify that Nginx is installed
 
 Go to the VM's public IP Address. You can find that in `network` of the instance dashboard
 
-![step10.2](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step20.png?raw=true)
+![step10.2](public/step20.png)
 
-![step10.3](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step21.png?raw=true)
+![step10.3](public/step21.png)
 
 
 If you see this, it means that nginx is installed correctly
+--- 
 
-#### 4. Configure Nginx as a Reverse Proxy
-Create a new configuration file for your Node.js application. You can place this file in the `/etc/nginx/sites-available` directory. For example, create a file called `nodeapp`
+### Step 6: Setting up Flask Server
+
+#### 1. Setup Python Environment
+You need to install Python, Package Manager, Virtual Environment to run our application. If you are running a different application, install respective dependency
 
 ```bash
-sudo nano /etc/nginx/sites-available/nodeapp
+sudo apt install python3
+sudo apt install python-is-python3
+sudo apt install pip
+sudo apt install python3.12-venv
 ```
 
-Add the following configuration to the file:
+#### 2. Transfer the project files
+In this step, you need to transfer all the project files using either git or scp or any other mechanism
+
+For this example, I'll use git
+
+
+You need to install git to bring your files into virtual machine.
+
+```bash
+sudo apt install git -y
+```
+
+Navigate to the directory where you want to clone your project. For example, your home directory:
+
+```bash
+cd ~
+```
+
+Clone your repository
+
+```bash
+git clone https://github.com/tirthraj07/AWS-Cloud-Challenge.git
+```
+
+
+### Step 7: Install project dependencies
+
+#### 1. Navigate to your Project Directory
+```bash
+cd your-repo-name
+cd flask-todo
+```
+
+#### 2. Install Project Dependencies
+
+Install SQLite for this project
+
+```bash
+sudo apt install sqlite3
+sqlite3 --version
+```
+
+Create a python virtual environment
+
+```bash
+python -m venv my_env
+source my_env/bin/activate
+```
+
+Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Deactivate from virtual environment
+
+```bash
+deactivate
+```
+
+### Step 8: Run Server in Background
+
+__Tmux__ (short for Terminal Multiplexer) is a powerful command-line tool that allows you to manage multiple terminal sessions within a single window. It is particularly useful for:
+
+Running long-running processes (e.g., servers) in the background.
+
+Detaching and reattaching to terminal sessions, even after disconnecting from a remote server.
+
+Splitting the terminal window into multiple panes for multitasking.
+
+Tmux is widely used by developers and system administrators to manage workflows on remote servers or for running processes that need to persist even after closing the terminal.
+
+
+#### 1. Create a new tmux session
+```bash
+tmux new -s mysession
+```
+
+#### 2. Start Flask Server using Gunicorn
+```bash
+source my_env/bin/activate
+
+gunicorn -w 3 app:app --bind 0.0.0.0:8080
+```
+
+#### 3. Detach from the session
+Press `Ctrl + b` and `d` (detach)
+
+#### 4. Check if server is running in background
+
+```bash
+ps aux | grep 'python'
+```
+
+Example Output
+
+```bash
+ubuntu     11303  0.7  2.4  34252 24448 pts/1    S+   22:02   0:00 /home/ubuntu/flask-todo/my_env/bin/python /home/ubuntu/flask-todo/my_env/bin/gunicorn -w 3 app:app --bind 0.0.0.0:8080
+ubuntu     11304  2.6  5.2  66372 51552 pts/1    S+   22:02   0:00 /home/ubuntu/flask-todo/my_env/bin/python /home/ubuntu/flask-todo/my_env/bin/gunicorn -w 3 app:app --bind 0.0.0.0:8080
+ubuntu     11305  2.6  5.2  66372 51552 pts/1    S+   22:02   0:00 /home/ubuntu/flask-todo/my_env/bin/python /home/ubuntu/flask-todo/my_env/bin/gunicorn -w 3 app:app --bind 0.0.0.0:8080
+ubuntu     11306  2.6  5.2  66404 51552 pts/1    S+   22:02   0:00 /home/ubuntu/flask-todo/my_env/bin/python /home/ubuntu/flask-todo/my_env/bin/gunicorn -w 3 app:app --bind 0.0.0.0:8080
+```
+
+#### 5. Optionally to reattach to the session to check for logs
+```bash
+tmux attach -t mysession
+```
+
+---
+### Step 9. Configure Nginx as a Reverse Proxy
+Since our python application is bound to port `8080`, we need to forward all request from port `80` to port `8080`. To do so, we need to change the Nginx Configuration file.
+
+#### 1. Rename the default configuration file
+```bash
+sudo mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default-demo
+```
+
+#### 2. Create a new default configuration file and copy the following
+
+```bash
+sudo touch /etc/nginx/sites-available/default
+sudo nano /etc/nginx/sites-available/default
+```
 
 ```bash
 server {
@@ -316,7 +257,7 @@ server {
     server_name your_domain_or_IP;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -325,15 +266,10 @@ server {
     }
 }
 ```
+Replace the `your_domain_or_IP` with the public IPv4 address and proxy pass to localhost:8080 where our flask app is running.
 
-![step10.4](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step22.png?raw=true)
+![step10.4](public/step22.png)
 
-#### 5. Enable the Configuration
-
-Create a symbolic link to enable the configuration:
-```bash
-sudo ln -s /etc/nginx/sites-available/nodeapp /etc/nginx/sites-enabled/
-```
 
 Test the Nginx configuration for syntax errors:
 ```bash
@@ -345,25 +281,26 @@ If there are no errors, restart Nginx to apply the changes:
 sudo systemctl restart nginx
 ```
 
-#### 6. Adjust Firewall Rules
+#### 6. Optionally Adjust Firewall Rules
 Ensure that your firewall allows HTTPS traffic:
 ```bash 
 sudo ufw allow 'Nginx Full'
-```
-  
+```  
    
-![step10.5](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step23.png?raw=true)
+![step10.5](public/step23.png)
 
 
 #### 7. Verify the setup
 
 Open your web browser and navigate to `http://IP`. 
-You should see your Node.js application, indicating that Nginx is successfully proxying requests to your application running on port 3000.
+You should see your Flask application, indicating that Nginx is successfully proxying requests to your application running on port 8080.
 
-![step10.6](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step24.png?raw=true)
+![step10.6](public/step24.png)
 
----
-### Step 11: Obtain SSL/TLS Certificate (Optional Step)
+
+--- 
+
+### Step 10: Obtain SSL/TLS Certificate (Optional Step)
 
 You need to obtain a SSL/TLS Certificate inorder to use HTTPS instead of HTTP.
 
@@ -523,7 +460,7 @@ add_header X-Content-Type-Options nosniff;
 Edit your site configuration:
 
 ```bash
-sudo nano /etc/nginx/sites-available/nodeapp
+sudo nano /etc/nginx/sites-available/default
 ```
 
 Update it to use the self-signed certificate:
@@ -531,20 +468,20 @@ Update it to use the self-signed certificate:
 ```nginx
 server {
     listen 80;
-    server_name 52.87.198.144;
+    server_name public_ip_addr;
 
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name 52.87.198.144;
+    server_name public_ip_addr;
 
     include snippets/self-signed.conf;
     include snippets/ssl-params.conf;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -571,7 +508,7 @@ sudo ufw allow 'Nginx Full'
 ```
 
 #### 7. Verification
-Open your web browser and navigate to `http://your_ip_address`. You should be automatically redirected to `https://your_ip_address`, and your Node.js application should be served securely. 
+Open your web browser and navigate to `http://your_ip_address`. You should be automatically redirected to `https://your_ip_address`, and your Application should be served securely. 
 
 
 ![step11.2.3](https://github.com/tirthraj07/deploy-nodejs-on-ec2/blob/main/public/step27.png?raw=true)
@@ -583,4 +520,4 @@ Open your web browser and navigate to `http://your_ip_address`. You should be au
 
 ---
 
-There you go! You have successfully deployed your __Node JS__ project on __AWS EC2 Instance__ with __NGINX__ AND __SSL__
+There you go! You have successfully deployed your project on __AWS EC2 Instance__ with __NGINX__ AND __SSL__
